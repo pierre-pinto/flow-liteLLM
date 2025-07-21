@@ -87,7 +87,7 @@ class MyCustomHandler(CustomLogger):
 
     def prepare_foundry(self, data):
         data['api_base'] = FOUNDRY_API_BASE 
-
+ 
         return data
 
     def prepare_gemini(self, data):
