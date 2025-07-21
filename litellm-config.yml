@@ -55,6 +55,7 @@ model_list:
       metadata:
         model_group: amazon-bedrock
 
+
 #Azure Foundry Models
   - model_name: azure_ai/DeepSeek-R1
     litellm_params:

@@ -13,6 +13,12 @@ from cachetools import TTLCache
 # Import our custom Anthropic monkey patches
 from anthropic_patches import apply_anthropic_patches
 
+# Get Base Url constraints
+OPENAI_API_BASE=os.getenv("OPENAI_API_BASE", "https://flow.ciandt.com/ai-orchestration-api/v1/openai" )+ "#"
+BEDROCK_API_BASE=os.getenv("BEDROCK_API_BASE", "https://flow.ciandt.com/ai-orchestration-api/v1/bedrock" )
+GEMINI_API_BASE=os.getenv("GEMINI_API_BASE", "https://flow.ciandt.com/ai-orchestration-api/v1/google" )
+FOUNDRY_API_BASE=os.getenv("FOUNDRY_API_BASE", "https://flow.ciandt.com/ai-orchestration-api/v1/foundry/chat/completions" )+ "#"
+FLOW_TOKEN_URL=os.getenv("FLOW_TOKEN_URL", "https://flow.ciandt.com/auth-engine-api/v1/api-key/token")
 # Apply the monkey patches
 apply_anthropic_patches()
 
@@ -80,15 +86,15 @@ class MyCustomHandler(CustomLogger):
         return data
 
     def prepare_foundry(self, data):
-        data['api_base'] = os.getenv('FOUNDRY_API_BASE') + "#"
+        data['api_base'] = FOUNDRY_API_BASE 
 
         return data
 
     def prepare_gemini(self, data):
         if 'stream' in data and data['stream'] == True:
-            data['api_base'] = os.getenv('GEMINI_API_BASE') + "/streamGenerateContent#"
+            data['api_base'] = GEMINI_API_BASE + "/streamGenerateContent#"
         else:
-            data['api_base'] = os.getenv('GEMINI_API_BASE') +"/generateContent#"
+            data['api_base'] = GEMINI_API_BASE +"/generateContent#"
 
         return data
 
@@ -98,9 +104,9 @@ class MyCustomHandler(CustomLogger):
         os.environ["AWS_REGION_NAME"] = "ignore"
 
         if 'stream' in data and data['stream'] == True:
-            data['api_base'] = os.getenv('BEDROCK_API_BASE') + "/invoke-with-response-stream#"
+            data['api_base'] = BEDROCK_API_BASE + "/invoke-with-response-stream#"
         else:
-            data['api_base'] = os.getenv('BEDROCK_API_BASE') + "/invoke#"
+            data['api_base'] = BEDROCK_API_BASE + "/invoke#"
 
         if 'claude-35-sonnet' in data["model"] and 'parallel_tool_calls' in data:
             del data['parallel_tool_calls']
@@ -132,7 +138,7 @@ class MyCustomHandler(CustomLogger):
         return data
 
     def prepare_openai(self, data):
-        data['api_base'] = os.getenv('OPENAI_API_BASE')+ "#"
+        data['api_base'] = OPENAI_API_BASE 
 
         return data
 
@@ -165,7 +171,7 @@ class MyCustomHandler(CustomLogger):
         Get a token from cache or generate a new one using client credentials.
         Uses client_secret as the cache key for user-specific tokens.
         """
-        token_url = os.getenv('FLOW_TOKEN_URL')
+        token_url = FLOW_TOKEN_URL
 
         # First try to get credentials from headers
         header_client_id, header_client_secret, header_tenant = self.get_credentials_from_headers(data)

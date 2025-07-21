@@ -32,12 +32,12 @@ RUN apk --no-cache add build-base cargo curl make nginx rust supervisor && \
     echo "startretries=5" >> /etc/supervisord.conf && \
     echo "error_log /dev/stderr debug;" >> /etc/nginx/nginx.conf
 
-    # Set environment variables for API URLs
-    ENV OPENAI_API_BASE="https://flow.ciandt.com/ai-orchestration-api/v1/openai/chat/completions" 
-    ENV BEDROCK_API_BASE="https://flow.ciandt.com/ai-orchestration-api/v1/bedrock" 
-    ENV GEMINI_API_BASE="https://flow.ciandt.com/ai-orchestration-api/v1/google" 
-    ENV FOUNDRY_API_BASE="https://flow.ciandt.com/ai-orchestration-api/v1/foundry/chat/completions" 
-    ENV FLOW_TOKEN_URL="https://flow.ciandt.com/auth-engine-api/v1/api-key/token"
+# Set environment variables for API URLs
+ENV OPENAI_API_BASE="https://flow.ciandt.com/ai-orchestration-api/v1/openai" 
+ENV BEDROCK_API_BASE="https://flow.ciandt.com/ai-orchestration-api/v1/bedrock" 
+ENV GEMINI_API_BASE="https://flow.ciandt.com/ai-orchestration-api/v1/google" 
+ENV FOUNDRY_API_BASE="https://flow.ciandt.com/ai-orchestration-api/v1/foundry/chat/completions" 
+ENV FLOW_TOKEN_URL="https://flow.ciandt.com/auth-engine-api/v1/api-key/token"
     
 COPY ./ /app/
 COPY ./nginx.conf /etc/nginx/nginx.conf
