@@ -150,7 +150,7 @@ class MyCustomHandler(CustomLogger):
         client_id = None
         client_secret = None
         tenant = None
-
+        
         
         # Check if we have current request data with headers
         if data and 'proxy_server_request' in data and 'headers' in data['proxy_server_request']:
@@ -163,24 +163,49 @@ class MyCustomHandler(CustomLogger):
                     client_secret = header_value
                 elif header_name.upper() == 'FLOW_TENANT':
                     tenant = header_value 
+                
         
         return client_id, client_secret, tenant or os.getenv('FLOW_TENANT')
+    
+    def get_flow_token(self, data):
+        """
+        Extract Flow token from request headers if available.
+        """
+        flow_token = None
+
+        # Check if we have current request data with headers
+        if data and 'proxy_server_request' in data and 'headers' in data['proxy_server_request']:
+            headers = data['proxy_server_request']['headers']
+            # Check for Flow token in headers (case-insensitive)
+            for header_name, header_value in headers.items():
+                print(f"Header: {header_name} = {header_value}")
+                if header_name.upper() == 'FLOW_TOKEN':
+                    flow_token = header_value
+
+        return flow_token or None
 
     def prepare_flow_token(self, data):
         """
         Get a token from cache or generate a new one using client credentials.
         Uses client_secret as the cache key for user-specific tokens.
         """
+        # Check if flow token exists in request headers
+        flow_token = self.get_flow_token(data)
+        if flow_token:
+            print(f"Using cookie Flow token")
+            return flow_token
+        
         token_url = FLOW_TOKEN_URL
 
         # First try to get credentials from headers
-        header_client_id, header_client_secret, header_tenant = self.get_credentials_from_headers(data)
-
+        header_client_id, header_client_secret, header_tenant = self.get_credentials_from_headers(data)       
+        
         # Use headers if available, otherwise fall back to environment variables
         client_id = header_client_id or os.getenv('FLOW_CLIENT_ID')
         client_secret = header_client_secret or os.getenv('FLOW_CLIENT_SECRET')
         tenant = header_tenant or os.getenv('FLOW_TENANT')
-                
+        
+
         # Return None if credentials are not configured
         if not client_id or not client_secret or not tenant:
             return None
