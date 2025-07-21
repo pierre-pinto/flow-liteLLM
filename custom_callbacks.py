@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from litellm.integrations.custom_logger import CustomLogger
 from litellm.proxy.proxy_server import UserAPIKeyAuth, DualCache
 from typing import Literal
@@ -59,8 +62,8 @@ class MyCustomHandler(CustomLogger):
             return self.prepare_bedrock(data)
         if 'gemini' in data['model']:
             return self.prepare_gemini(data)
-        if 'deepseek' in data['model'].lower():
-            return self.prepare_deepseek(data)
+        if 'azure_ai' in data['model'].lower():
+            return self.prepare_foundry(data)
         else:
             return None
 
@@ -76,16 +79,16 @@ class MyCustomHandler(CustomLogger):
         
         return data
 
-    def prepare_deepseek(self, data):
-        data['api_base'] = "https://flow.ciandt.com/ai-orchestration-api/v1/foundry/chat/completions#"
+    def prepare_foundry(self, data):
+        data['api_base'] = os.getenv('FOUNDRY_API_BASE') + "#"
 
         return data
 
     def prepare_gemini(self, data):
         if 'stream' in data and data['stream'] == True:
-            data['api_base'] = "https://flow.ciandt.com/ai-orchestration-api/v1/google/streamGenerateContent#"
+            data['api_base'] = os.getenv('GEMINI_API_BASE') + "/streamGenerateContent#"
         else:
-            data['api_base'] = "https://flow.ciandt.com/ai-orchestration-api/v1/google/generateContent#"
+            data['api_base'] = os.getenv('GEMINI_API_BASE') +"/generateContent#"
 
         return data
 
@@ -95,9 +98,9 @@ class MyCustomHandler(CustomLogger):
         os.environ["AWS_REGION_NAME"] = "ignore"
 
         if 'stream' in data and data['stream'] == True:
-            data['api_base'] = "https://flow.ciandt.com/ai-orchestration-api/v1/bedrock/invoke-with-response-stream#"
+            data['api_base'] = os.getenv('BEDROCK_API_BASE') + "/invoke-with-response-stream#"
         else:
-            data['api_base'] = "https://flow.ciandt.com/ai-orchestration-api/v1/bedrock/invoke#"
+            data['api_base'] = os.getenv('BEDROCK_API_BASE') + "/invoke#"
 
         if 'claude-35-sonnet' in data["model"] and 'parallel_tool_calls' in data:
             del data['parallel_tool_calls']
@@ -129,7 +132,7 @@ class MyCustomHandler(CustomLogger):
         return data
 
     def prepare_openai(self, data):
-        data['api_base'] = "https://flow.ciandt.com/ai-orchestration-api/v1/openai/"
+        data['api_base'] = os.getenv('OPENAI_API_BASE')+ "#"
 
         return data
 
@@ -162,8 +165,8 @@ class MyCustomHandler(CustomLogger):
         Get a token from cache or generate a new one using client credentials.
         Uses client_secret as the cache key for user-specific tokens.
         """
-        token_url = 'https://flow.ciandt.com/auth-engine-api/v1/api-key/token'
-        
+        token_url = os.getenv('FLOW_TOKEN_URL')
+
         # First try to get credentials from headers
         header_client_id, header_client_secret, header_tenant = self.get_credentials_from_headers(data)
 
