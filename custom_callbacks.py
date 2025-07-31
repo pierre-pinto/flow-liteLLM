@@ -203,25 +203,8 @@ class MyCustomHandler(CustomLogger):
          # Try to get user Authorization header or api-key
         user_auth = None
         if self.current_request_data['metadata']['user_api_key']:
-            user_auth = self.current_request_data['metadata']['user_api_key']
-            
-        if user_auth:
-            #check if user auth is a valid JWT token
-            flow_token = None
-            try:
-                # JWTs have three parts separated by dots
-                if user_auth.count('.') == 2:
-                    # Try to decode without verification to check structure
-                    jwt.decode(user_auth, options={"verify_signature": False})
-                    flow_token = user_auth
-            except Exception:
-                flow_token = None
-
-            if flow_token:
-                print(f"Using Flow token")
-                return flow_token
-            else:
-                self.set_credentials(user_auth)
+            user_auth = self.current_request_data['metadata']['user_api_key']        
+        self.set_credentials(user_auth)
         
         token_url = FLOW_TOKEN_URL
 
