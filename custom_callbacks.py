@@ -12,6 +12,8 @@ from cachetools import TTLCache
 
 # Import our custom Anthropic monkey patches
 from anthropic_patches import apply_anthropic_patches
+import re
+import jwt
 
 # Get Base Url constraints
 OPENAI_API_BASE=os.getenv("OPENAI_API_BASE", "https://flow.ciandt.com/ai-orchestration-api/v1/openai" )+ "#"
@@ -58,7 +60,7 @@ class MyCustomHandler(CustomLogger):
         # print(json.dumps(data))
         
         # Store the current request data for header access
-        self.current_request_data = data
+        self.current_request_data = data       
         
         data = self.prepare_base_request(data)
 
@@ -72,6 +74,29 @@ class MyCustomHandler(CustomLogger):
             return self.prepare_foundry(data)
         else:
             return None
+        
+    def set_credentials(self, user_auth):
+        """
+        Set the credentials for the current request based on user API key.
+        This method can be extended to handle different authentication methods.
+        """
+        splitted_credentials = user_auth.split('//')
+        if len(splitted_credentials) != 3:
+            raise ValueError("Invalid user API key.")
+         # Check if item is a GUID (UUID)
+        guid_regex = re.compile(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+        )
+        # Extract position for each credential part
+        for item in splitted_credentials:
+           
+            if guid_regex.match(item):               
+                os.environ['FLOW_CLIENT_ID'] = item
+            elif len(item) > 30:  # crude check for secret                
+                os.environ['FLOW_CLIENT_SECRET'] = item
+            else:                
+                os.environ['FLOW_TENANT'] = item
+
 
     def prepare_base_request(self, data):
         token = self.prepare_flow_token(data)
@@ -167,33 +192,36 @@ class MyCustomHandler(CustomLogger):
         
         return client_id, client_secret, tenant or os.getenv('FLOW_TENANT')
     
-    def get_flow_token(self, data):
-        """
-        Extract Flow token from request headers if available.
-        """
-        flow_token = None
-
-        # Check if we have current request data with headers
-        if data and 'proxy_server_request' in data and 'headers' in data['proxy_server_request']:
-            headers = data['proxy_server_request']['headers']
-            # Check for Flow token in headers (case-insensitive)
-            for header_name, header_value in headers.items():
-                print(f"Header: {header_name} = {header_value}")
-                if header_name.upper() == 'FLOW_TOKEN':
-                    flow_token = header_value
-
-        return flow_token or None
+    
 
     def prepare_flow_token(self, data):
         """
         Get a token from cache or generate a new one using client credentials.
         Uses client_secret as the cache key for user-specific tokens.
         """
-        # Check if flow token exists in request headers
-        flow_token = self.get_flow_token(data)
-        if flow_token:
-            print(f"Using cookie Flow token")
-            return flow_token
+
+         # Try to get user Authorization header or api-key
+        user_auth = None
+        if self.current_request_data['metadata']['user_api_key']:
+            user_auth = self.current_request_data['metadata']['user_api_key']
+            
+        if user_auth:
+            #check if user auth is a valid JWT token
+            flow_token = None
+            try:
+                # JWTs have three parts separated by dots
+                if user_auth.count('.') == 2:
+                    # Try to decode without verification to check structure
+                    jwt.decode(user_auth, options={"verify_signature": False})
+                    flow_token = user_auth
+            except Exception:
+                flow_token = None
+
+            if flow_token:
+                print(f"Using Flow token")
+                return flow_token
+            else:
+                self.set_credentials(user_auth)
         
         token_url = FLOW_TOKEN_URL
 
